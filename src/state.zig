@@ -47,6 +47,8 @@ pub fn State(comptime config: StateConfig) type {
 
         isLoaded: bool = false,
 
+        rand: std.Random.Xoshiro256 = std.Random.DefaultPrng.init(0),
+
         const Self = @This();
 
         pub fn init() Self {
@@ -65,7 +67,7 @@ pub fn State(comptime config: StateConfig) type {
             inline for (std.meta.fields(@TypeOf(soundPaths))) |field| {
                 const sound = rl.loadSound(@field(soundPaths, field.name));
                 @field(s.sounds, field.name) = sound;
-                rl.setSoundVolume(sound, 0.02);
+                rl.setSoundVolume(sound, 0.05);
             }
 
             s.isLoaded = true;
@@ -127,6 +129,10 @@ pub fn State(comptime config: StateConfig) type {
 
         pub fn getComponentO(s: *Self, comptime T: type, entity: usize) *?T {
             return s.components.getOptional(T, entity);
+        }
+
+        pub fn query(s: *Self, comptime T: type) Components(maxEntities).QueryIterator(T) {
+            return s.components.query(T, &s.entities);
         }
 
         pub fn setComponent(s: *Self, comptime T: type, entity: usize, componentData: T) void {

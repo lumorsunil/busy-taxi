@@ -78,6 +78,26 @@ pub const RandomWalk = struct {
     }
 };
 
+pub const CustomerComponent = struct {
+    state: State = .waitingForTransport,
+
+    pub const DropOff = struct {
+        destination: rl.Vector2,
+    };
+
+    pub const State = union(enum) {
+        waitingForTransport,
+        walkingToDropOff: DropOff,
+        transportingToDropOff: DropOff,
+    };
+};
+
+pub const LocationComponent = struct {
+    entrancePosition: rl.Vector2,
+};
+
+pub const Invisible = struct {};
+
 pub fn Components(comptime maxEntities: usize) type {
     return struct {
         transform: [maxEntities]?Transform = undefined,
@@ -85,6 +105,9 @@ pub fn Components(comptime maxEntities: usize) type {
         texture: [maxEntities]?*const rl.Texture2D = undefined,
         animation: [maxEntities]?AnimationComponent = undefined,
         randomWalk: [maxEntities]?RandomWalk = undefined,
+        customer: [maxEntities]?CustomerComponent = undefined,
+        location: [maxEntities]?LocationComponent = undefined,
+        invisible: [maxEntities]?Invisible = undefined,
         label: [maxEntities]?Label = undefined,
 
         pub fn get(c: *Components(maxEntities), comptime T: type, entity: usize) ComponentError!*T {
@@ -102,9 +125,41 @@ pub fn Components(comptime maxEntities: usize) type {
                 *const rl.Texture2D => &c.texture[entity],
                 AnimationComponent => &c.animation[entity],
                 RandomWalk => &c.randomWalk[entity],
+                CustomerComponent => &c.customer[entity],
+                LocationComponent => &c.location[entity],
+                Invisible => &c.invisible[entity],
                 Label => &c.label[entity],
                 else => @compileError("Component type " ++ @typeName(T) ++ " not supported"),
             };
+        }
+
+        pub fn QueryIterator(comptime T: type) type {
+            return struct {
+                entities: *[maxEntities]?bool,
+                components: *Components(maxEntities),
+                index: usize = 0,
+
+                pub fn init(c: *Components(maxEntities), entities: *[maxEntities]?bool) QueryIterator(T) {
+                    return QueryIterator(T){
+                        .entities = entities,
+                        .components = c,
+                    };
+                }
+
+                pub fn next(self: *QueryIterator(T)) ?*T {
+                    for (self.index..self.entities.len) |entity| {
+                        const component = self.components.get(T, entity) catch continue;
+                        self.index = entity + 1;
+                        return component;
+                    }
+
+                    return null;
+                }
+            };
+        }
+
+        pub fn query(c: *Components(maxEntities), comptime T: type, entities: *[maxEntities]?bool) QueryIterator(T) {
+            return QueryIterator(T).init(c, entities);
         }
     };
 }

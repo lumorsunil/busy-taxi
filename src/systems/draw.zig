@@ -3,6 +3,7 @@ const rl = @import("raylib");
 
 const GameState = @import("../state-config.zig").GameState;
 const Transform = @import("../components.zig").Transform;
+const Invisible = @import("../components.zig").Invisible;
 const Label = @import("../components.zig").Label;
 const Camera = @import("../camera.zig").Camera;
 
@@ -28,6 +29,10 @@ pub const DrawSystem = struct {
         const orderedEntities = drawOrder(s);
 
         for (orderedEntities) |entity| {
+            const invisible = s.getComponentO(Invisible, entity);
+
+            if (invisible.* != null) continue;
+
             const transform = s.getComponent(Transform, entity) catch continue;
             const texture = s.getComponent(*const rl.Texture2D, entity) catch continue;
 

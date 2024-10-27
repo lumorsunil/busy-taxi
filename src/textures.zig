@@ -12,6 +12,24 @@ pub fn Textures(comptime T: type) type {
         playerDown1: T,
         playerDown2: T,
 
+        carBlueLeft1: T,
+        carBlueLeft2: T,
+        carBlueRight1: T,
+        carBlueRight2: T,
+        carBlueUp1: T,
+        carBlueUp2: T,
+        carBlueDown1: T,
+        carBlueDown2: T,
+
+        carBlackLeft1: T,
+        carBlackLeft2: T,
+        carBlackRight1: T,
+        carBlackRight2: T,
+        carBlackUp1: T,
+        carBlackUp2: T,
+        carBlackDown1: T,
+        carBlackDown2: T,
+
         roadUp: T,
         roadDown: T,
         roadLeft: T,
@@ -49,6 +67,10 @@ pub fn Textures(comptime T: type) type {
         pedestrianRedWalk2: T,
         pedestrianRedWalk3: T,
         pedestrianRedWalk4: T,
+
+        airPlane: T,
+
+        targetArrow: T,
     };
 }
 
@@ -61,6 +83,24 @@ pub const texturePaths = Textures([*:0]const u8){
     .playerUp2 = assetsRoot ++ "player-up-2.png",
     .playerDown1 = assetsRoot ++ "player-down-1.png",
     .playerDown2 = assetsRoot ++ "player-down-2.png",
+
+    .carBlueLeft1 = assetsRoot ++ "player-left-1.png",
+    .carBlueLeft2 = assetsRoot ++ "player-left-2.png",
+    .carBlueRight1 = assetsRoot ++ "player-right-1.png",
+    .carBlueRight2 = assetsRoot ++ "player-right-2.png",
+    .carBlueUp1 = assetsRoot ++ "player-up-1.png",
+    .carBlueUp2 = assetsRoot ++ "player-up-2.png",
+    .carBlueDown1 = assetsRoot ++ "player-down-1.png",
+    .carBlueDown2 = assetsRoot ++ "player-down-2.png",
+
+    .carBlackLeft1 = assetsRoot ++ "car-black-left-1.png",
+    .carBlackLeft2 = assetsRoot ++ "car-black-left-2.png",
+    .carBlackRight1 = assetsRoot ++ "car-black-right-1.png",
+    .carBlackRight2 = assetsRoot ++ "car-black-right-2.png",
+    .carBlackUp1 = assetsRoot ++ "car-black-up-1.png",
+    .carBlackUp2 = assetsRoot ++ "car-black-up-2.png",
+    .carBlackDown1 = assetsRoot ++ "car-black-down-1.png",
+    .carBlackDown2 = assetsRoot ++ "car-black-down-2.png",
 
     .roadUp = assetsRoot ++ "road-up.png",
     .roadDown = assetsRoot ++ "road-down.png",
@@ -99,4 +139,8 @@ pub const texturePaths = Textures([*:0]const u8){
     .pedestrianRedWalk2 = assetsRoot ++ "pedestrian-red-walk-2.png",
     .pedestrianRedWalk3 = assetsRoot ++ "pedestrian-red-walk-3.png",
     .pedestrianRedWalk4 = assetsRoot ++ "pedestrian-red-walk-4.png",
+
+    .airPlane = assetsRoot ++ "plane.png",
+
+    .targetArrow = assetsRoot ++ "target-arrow.png",
 };

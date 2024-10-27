@@ -17,6 +17,8 @@ const Transform = @import("../components.zig").Transform;
 const Physics = @import("../components.zig").Physics;
 const AnimationComponent = @import("../components.zig").AnimationComponent;
 const RandomWalk = @import("../components.zig").RandomWalk;
+const LocationComponent = @import("../components.zig").LocationComponent;
+const CustomerComponent = @import("../components.zig").CustomerComponent;
 const Label = @import("../components.zig").Label;
 
 const DrawSystem = @import("../systems/draw.zig").DrawSystem;
@@ -26,6 +28,8 @@ const RandomWalkSystem = @import("../systems/random-walk.zig").RandomWalkSystem;
 const CustomerSystem = @import("../systems/customer.zig").CustomerSystem;
 
 const CollisionEvent = @import("../systems/physics.zig").CollisionEvent;
+
+const Highscore = @import("../highscore.zig").Highscore;
 
 const road = @import("../road.zig");
 
@@ -64,7 +68,18 @@ inline fn getRandomPosition() rl.Vector2 {
     return rl.Vector2.init(x, y);
 }
 
+const InitialSceneState = union(enum) {
+    playing,
+    gameOver: GameOver,
+
+    const GameOver = struct {
+        placement: usize,
+    };
+};
+
 pub const InitialScene = struct {
+    state: InitialSceneState = .playing,
+
     camera: Camera,
     player: usize,
     playerAnim1: *const rl.Texture2D,
@@ -73,6 +88,11 @@ pub const InitialScene = struct {
     engineSoundLast: f64 = 0,
     hardTurnSoundLast: f64 = 0,
     isBraking: bool = false,
+
+    highscore: Highscore,
+
+    score: usize = 100,
+    timeLeft: f64 = 5,
 
     houses: ArrayList(usize),
 
@@ -83,6 +103,8 @@ pub const InitialScene = struct {
         .right = rl.KeyboardKey.key_d,
         .brake = rl.KeyboardKey.key_space,
         .honk = rl.KeyboardKey.key_g,
+
+        .restart = rl.KeyboardKey.key_space,
     },
 
     animationPedestrianBlueWalk: *Animation,
@@ -108,6 +130,8 @@ pub const InitialScene = struct {
 
         var scene = InitialScene{
             .camera = Camera.init(),
+
+            .highscore = try Highscore.loadHighscore(allocator),
 
             .player = player,
             .playerAnim1 = &textures.playerLeft1,
@@ -153,6 +177,7 @@ pub const InitialScene = struct {
         scene.allocator.destroy(scene.animationPedestrianBlueWalk);
         scene.allocator.destroy(scene.animationPedestrianRedWalk);
         scene.houses.deinit();
+        scene.highscore.deinit();
     }
 
     pub fn initPlayer(state: *GameState) (EntityError || ComponentError)!usize {
@@ -205,10 +230,17 @@ pub const InitialScene = struct {
 
         state.setComponent(Label, house, .{ .label = "House" });
 
-        state.setComponent(Transform, house, Transform{
+        const transform = Transform{
             .p = rl.Vector2.init(128 * x, 128 * y),
             .s = scale * 2,
-        });
+        };
+        state.setComponent(Transform, house, transform);
+
+        const entrancePosition = rl.Vector2.init(
+            transform.p.x + 64,
+            transform.p.y + 128,
+        );
+        state.setComponent(LocationComponent, house, .{ .entrancePosition = entrancePosition });
 
         const l: f32 = if (texture == &textures.houseOrange) 10 else 4;
         const w: f32 = if (texture == &textures.houseOrange) 12 else 24;
@@ -337,6 +369,8 @@ pub const InitialScene = struct {
 
         state.setComponent(*const rl.Texture2D, customer, animationInstance.getCurrentTexture());
 
+        state.setComponent(CustomerComponent, customer, CustomerComponent{});
+
         return customer;
     }
 
@@ -348,10 +382,11 @@ pub const InitialScene = struct {
 
     const EventHandlerContext = struct { scene: *InitialScene, state: *GameState };
 
-    fn onCollision(context: *EventHandlerContext, event: CollisionEvent) void {
-        if (event.entityA == context.scene.player or event.entityB == context.scene.player and !rl.isSoundPlaying(context.state.sounds.crash)) {
-            rl.playSound(context.state.sounds.crash);
-        }
+    fn onCollision(_: *EventHandlerContext, _: CollisionEvent) void {
+        //fn onCollision(context: *EventHandlerContext, event: CollisionEvent) void {
+        //        if ((event.entityA == context.scene.player or event.entityB == context.scene.player) and !rl.isSoundPlaying(context.state.sounds.crash)) {
+        //            rl.playSound(context.state.sounds.crash);
+        //        }
     }
 
     pub fn update(scene: *InitialScene, state: *GameState, dt: f32, t: f64) !void {
@@ -365,6 +400,69 @@ pub const InitialScene = struct {
         RandomWalkSystem.update(state, t);
         CustomerSystem.update(state, scene.player);
         scene.updateCamera(transform);
+        scene.updateTimeLeft(dt);
+
+        try scene.addMissingCustomer(state);
+    }
+
+    fn restart(scene: *InitialScene, state: *GameState) !void {
+        state.destroyAllEntities();
+
+        const player = try initPlayer(state);
+
+        try initHouseGrid(state, -1, -1);
+        try initHouseGrid(state, -1, 0);
+        try initHouseGrid(state, 0, -1);
+        try initHouseGrid(state, 0, 0);
+
+        try initBoundary(state);
+
+        scene.camera = Camera.init();
+        scene.player = player;
+        scene.houses.clearAndFree();
+        scene.score = 0;
+        scene.timeLeft = 60;
+        scene.state = .playing;
+
+        for (0..state.entities.len) |entity| {
+            const label = state.getComponent(Label, entity) catch continue;
+
+            if (!std.mem.eql(u8, label.label, "House")) continue;
+
+            try scene.houses.append(entity);
+        }
+
+        for (0..50) |_| {
+            _ = try scene.initPedestrian(state, getRandomPosition());
+        }
+
+        _ = try scene.initCustomer(state);
+    }
+
+    fn updateTimeLeft(scene: *InitialScene, dt: f32) void {
+        if (scene.state == .playing) {
+            scene.timeLeft -= dt;
+        }
+
+        if (scene.timeLeft <= 0 and scene.state == .playing) {
+            scene.timeLeft = 0;
+            scene.state = .{ .gameOver = .{ .placement = scene.highscore.scorePlacement(scene.score) } };
+            scene.highscore.insertHighscoreIfEligible(scene.score) catch |err| {
+                std.log.err("Error inserting highscore: {}", .{err});
+            };
+        }
+    }
+
+    fn addMissingCustomer(scene: *InitialScene, state: *GameState) !void {
+        for (0..state.entities.len) |entity| {
+            _ = state.getComponent(CustomerComponent, entity) catch continue;
+            return;
+        }
+
+        _ = try scene.initCustomer(state);
+
+        scene.score += 100;
+        rl.playSound(state.sounds.score);
     }
 
     fn updatePhysics(scene: *InitialScene, state: *GameState, dt: f32) void {
@@ -409,9 +507,14 @@ pub const InitialScene = struct {
         const offsetX = blockLeft / 2 * blockCellSize;
         const offsetY = blockTop / 2 * blockCellSize;
 
-        const adjustX = 8;
+        const adjust = 8;
 
-        return rl.Rectangle.init(offsetX + blockCellSize + adjustX, offsetY + blockCellSize, blockCellSize * 5 - adjustX * 2, blockCellSize * 5);
+        return rl.Rectangle.init(
+            offsetX + blockCellSize + adjust,
+            offsetY + blockCellSize + adjust,
+            blockCellSize * 5 - adjust * 2,
+            blockCellSize * 5 - adjust * 2,
+        );
     }
 
     fn updateAnimationAndSound(scene: *InitialScene, state: *GameState, _: *Transform, physics: *Physics, t: f64) !void {
@@ -457,6 +560,15 @@ pub const InitialScene = struct {
     }
 
     pub fn handleInput(scene: *InitialScene, state: *GameState, dt: f32) !void {
+        if (scene.state == .gameOver) {
+            if (rl.isKeyDown(scene.keybinds.restart)) {
+                scene.restart(state) catch |err| {
+                    std.log.err("Error restarting: {}", .{err});
+                };
+            }
+            return;
+        }
+
         const textures = stateTextures(state);
 
         var ax: f32 = 0;
@@ -660,11 +772,103 @@ pub const InitialScene = struct {
 
         scene.drawTopFences(state);
 
+        scene.drawDropOffLocation(state);
+
         scene.drawSystem.draw(state, scene.camera);
 
         scene.drawBottomAndSideFences(state);
 
+        scene.drawTargetArrow(state);
+
+        scene.drawScore();
+        scene.drawTimeLeft();
+        if (scene.state == .gameOver) scene.drawGameOver();
+
         rl.endDrawing();
+    }
+
+    fn drawTextCenter(font: rl.Font, text: [*:0]const u8, position: rl.Vector2, fontSize: f32, spacing: f32, tint: rl.Color) void {
+        const textSize = rl.measureTextEx(font, text, fontSize, spacing);
+        const pos = rl.Vector2.init(-textSize.x / 2 + position.x, -textSize.y / 2 + position.y);
+        rl.drawTextEx(font, text, pos, fontSize, spacing, tint);
+    }
+
+    fn drawGameOver(scene: *const InitialScene) void {
+        const offsetY = cfg.size.h / 3;
+
+        const gameOverPos = rl.Vector2.init(cfg.size.w / 2, offsetY);
+        drawTextCenter(rl.getFontDefault(), "Game Over", gameOverPos, 96, 8, rl.Color.white);
+        drawTextCenter(rl.getFontDefault(), "Press SPACE to restart", rl.Vector2.init(cfg.size.w / 2, gameOverPos.y + 128), 32, 2, rl.Color.white);
+
+        const highscoreColors = [_]rl.Color{
+            rl.Color.yellow,
+            rl.Color.light_gray,
+            rl.Color.brown,
+        };
+
+        const placement = scene.state.gameOver.placement;
+        const placementNumberText = if (placement == 1) "1st" else if (placement == 2) "2nd" else "3rd";
+        if (placement == 0) {
+            // Didn't get highscore
+        } else {
+            const placementText = "You've got " ++ placementNumberText ++ " place!";
+
+            drawTextCenter(rl.getFontDefault(), placementText, rl.Vector2.init(cfg.size.w / 2, cfg.size.h / 2 + 128), 32, 2, highscoreColors[placement - 1]);
+        }
+
+        var highscoreBuffer: [64:0]u8 = undefined;
+        for (0..scene.highscore.leaderboard.len) |i| {
+            const highscoreLabel = if (i == 0) "1st" else if (i == 1) "2nd" else "3rd";
+            const highscoreText = std.fmt.bufPrint(&highscoreBuffer, "{s}. {d}", .{ highscoreLabel, scene.highscore.leaderboard[i].score }) catch |err| {
+                std.log.err("Error printing: {}", .{err});
+                return;
+            };
+            highscoreBuffer[highscoreText.len] = 0;
+
+            const y = cfg.size.h / 2 + 128 + 96 + @as(f32, @floatFromInt(i)) * 36;
+            drawTextCenter(rl.getFontDefault(), &highscoreBuffer, rl.Vector2.init(cfg.size.w / 2, y), 32, 2, highscoreColors[i]);
+        }
+    }
+
+    fn drawScore(scene: *const InitialScene) void {
+        var buffer: [64:0]u8 = undefined;
+        const slice = std.fmt.bufPrint(&buffer, "{d}", .{scene.score}) catch |err| {
+            std.log.err("Error printing score: {}", .{err});
+            return;
+        };
+        buffer[slice.len] = 0;
+
+        rl.drawText(&buffer, 5, 5, 32, rl.Color.white);
+    }
+
+    fn drawTimeLeft(scene: *const InitialScene) void {
+        var buffer: [8:0]u8 = undefined;
+        const slice = std.fmt.bufPrint(&buffer, "{d:.2}s", .{scene.timeLeft}) catch |err| {
+            std.log.err("Error printing: {}", .{err});
+            return;
+        };
+        buffer[slice.len] = 0;
+
+        const color = if (scene.timeLeft == 0) rl.Color.red else rl.Color.white;
+
+        rl.drawTextEx(rl.getFontDefault(), &buffer, rl.Vector2.init((cfg.size.w - 96) / 2, 5), 48, 2, color);
+    }
+
+    fn drawDropOffLocation(scene: *const InitialScene, state: *GameState) void {
+        var it = state.query(CustomerComponent);
+        while (it.next()) |customer| {
+            switch (customer.state) {
+                .transportingToDropOff => |dropOff| {
+                    var p = screen.screenPositionV(scene.camera.v(dropOff.destination));
+                    const w = 72;
+                    const h = 48;
+                    p.x -= w / 2;
+                    p.y -= h / 2;
+                    rl.drawRectangleV(p, rl.Vector2.init(w, h), rl.Color.green);
+                },
+                else => continue,
+            }
+        }
     }
 
     fn drawPhysicalRects(scene: *const InitialScene, state: *const GameState) void {
@@ -691,12 +895,102 @@ pub const InitialScene = struct {
     }
 
     fn drawDebugBlockSquare(scene: *const InitialScene) void {
-        const squares: []const rl.Rectangle = &.{ getBlockSquareRect(rl.Vector2.init(-1, -1)), getBlockSquareRect(rl.Vector2.init(-1, 0)), getBlockSquareRect(rl.Vector2.init(0, -1)), getBlockSquareRect(rl.Vector2.init(0, 0)) };
+        const squares: []const rl.Rectangle = &.{
+            getBlockSquareRect(rl.Vector2.init(-1, -1)),
+            getBlockSquareRect(rl.Vector2.init(-1, 0)),
+            getBlockSquareRect(rl.Vector2.init(0, -1)),
+            getBlockSquareRect(rl.Vector2.init(0, 0)),
+        };
 
         for (squares) |square| {
             const p = screen.screenPositionV(scene.camera.vxy(square.x, square.y));
 
             rl.drawRectangleV(p, rl.Vector2.init(square.width, square.height), rl.Color.white);
         }
+    }
+
+    fn drawTargetArrow(scene: *const InitialScene, state: *GameState) void {
+        const target = scene.getTargetPosition(state) orelse return;
+        const playerTransform = state.getComponent(Transform, scene.player) catch unreachable;
+        //const source = rl.Vector2.init(scene.camera.rect.x, scene.camera.rect.y);
+        const source = playerTransform.p;
+
+        const screenEdgePosition = scene.getTargetScreenEdgePosition(target, source) orelse return;
+        const arrowPosition = screen.screenPositionV(scene.camera.v(screenEdgePosition));
+
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+        const r = std.math.radiansToDegrees(std.math.atan2(dy, dx));
+
+        const textures = stateTextures(state);
+
+        const sourceT = rl.Rectangle.init(
+            0,
+            0,
+            @as(f32, @floatFromInt(textures.targetArrow.width)),
+            @as(f32, @floatFromInt(textures.targetArrow.height)),
+        );
+        const dest = rl.Rectangle.init(arrowPosition.x, arrowPosition.y, 64, 64);
+        const origin = rl.Vector2.init(0, 0);
+
+        rl.drawTexturePro(
+            textures.targetArrow,
+            sourceT,
+            dest,
+            origin,
+            r,
+            rl.Color.red,
+        );
+    }
+
+    fn getTargetScreenEdgePosition(scene: *const InitialScene, target: rl.Vector2, source: rl.Vector2) ?rl.Vector2 {
+        const w = scene.camera.rect.width - 128;
+        const h = scene.camera.rect.height - 128;
+        const l = source.x - w / 2;
+        const r = source.x + w / 2;
+        const t = source.y - h / 2;
+        const b = source.y + h / 2;
+        const tl = rl.Vector2.init(l, t);
+        const tr = rl.Vector2.init(r, t);
+        const bl = rl.Vector2.init(l, b);
+        const br = rl.Vector2.init(r, b);
+
+        var collisionPoint: rl.Vector2 = undefined;
+
+        // Top
+        if (rl.checkCollisionLines(source, target, tl, tr, &collisionPoint)) {
+            return collisionPoint;
+        }
+        // Left
+        if (rl.checkCollisionLines(source, target, tl, bl, &collisionPoint)) {
+            return collisionPoint;
+        }
+        // Bottom
+        if (rl.checkCollisionLines(source, target, bl, br, &collisionPoint)) {
+            return collisionPoint;
+        }
+        // Right
+        if (rl.checkCollisionLines(source, target, tr, br, &collisionPoint)) {
+            return collisionPoint;
+        }
+
+        return null;
+    }
+
+    inline fn getTargetPosition(_: *const InitialScene, state: *GameState) ?rl.Vector2 {
+        for (0..state.entities.len) |entity| {
+            const customer = state.getComponent(CustomerComponent, entity) catch continue;
+
+            switch (customer.state) {
+                .waitingForTransport => {
+                    const transform = state.getComponent(Transform, entity) catch unreachable;
+                    return transform.p;
+                },
+                .walkingToDropOff => |dropOff| return dropOff.destination,
+                .transportingToDropOff => |dropOff| return dropOff.destination,
+            }
+        }
+
+        return null;
     }
 };

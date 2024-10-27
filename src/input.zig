@@ -7,4 +7,6 @@ pub const Keybinds = struct {
     right: rl.KeyboardKey,
     brake: rl.KeyboardKey,
     honk: rl.KeyboardKey,
+
+    restart: rl.KeyboardKey,
 };

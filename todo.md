@@ -7,13 +7,18 @@
 - [x] pedestrians
 - [x] customers
 - [x] locations
-- [ ] customer drop off
-- [ ] score
-- [ ] time limit
-- [ ] high score
+- [x] customer drop off
+- [x] arrow to show where the next target is
+- [x] score
+- [x] time limit
+- [x] game over screen
+- [x] high score
 - [ ] other cars
 - [ ] make pedestrians not walk on road
+- [ ] have pedestrians move out of the way
+- [ ] larger city, procedural generation
 
 ## fixes
 
 - [ ] fix render tearing
+- [ ] fix animation playing too fast after it has been paused for a while
