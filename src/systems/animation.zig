@@ -1,15 +1,17 @@
-const std = @import("std");
 const rl = @import("raylib");
+const ecs = @import("ecs");
 
-const GameState = @import("../state-config.zig").GameState;
+const TextureComponent = @import("zge").components.TextureComponent;
 const AnimationComponent = @import("../components.zig").AnimationComponent;
 
 pub const AnimationSystem = struct {
-    pub fn update(_: *const AnimationSystem, s: *GameState, t: f64) void {
-        for (0..s.entities.len) |entity| {
-            const animation = s.getComponent(AnimationComponent, entity) catch continue;
+    pub fn update(_: *const AnimationSystem, reg: *ecs.Registry, t: f64) void {
+        var view = reg.basicView(AnimationComponent);
+
+        for (view.data()) |entity| {
+            const animation = reg.get(AnimationComponent, entity);
             animation.animationInstance.update(t);
-            s.setComponent(*const rl.Texture2D, entity, animation.animationInstance.getCurrentTexture());
+            reg.addOrReplace(entity, TextureComponent.init(animation.animationInstance.getCurrentTexture()));
         }
     }
 };

@@ -16,7 +16,7 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const exe = b.addExecutable(.{
-        .name = "crazy-taxi",
+        .name = "busy-taxi",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
@@ -34,6 +34,24 @@ pub fn build(b: *std.Build) void {
     exe.linkLibrary(raylib_artifact);
     exe.root_module.addImport("raylib", raylib);
     exe.root_module.addImport("raygui", raygui);
+
+    const ecs_dep = b.dependency("entt", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const ecs = ecs_dep.module("zig-ecs");
+    exe.root_module.addImport("ecs", ecs);
+
+    const zlm_dep = b.dependency("zlm", .{});
+    const zlm = zlm_dep.module("zlm");
+    exe.root_module.addImport("zlm", zlm);
+
+    const zge_dep = b.dependency("zge", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const zge = zge_dep.module("zge");
+    exe.root_module.addImport("zge", zge);
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default

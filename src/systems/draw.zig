@@ -1,7 +1,9 @@
 const std = @import("std");
 const rl = @import("raylib");
+const zlm = @import("zlm");
 
 const GameState = @import("../state-config.zig").GameState;
+const RigidBody = @import("../components.zig").RigidBody;
 const Transform = @import("../components.zig").Transform;
 const Invisible = @import("../components.zig").Invisible;
 const Label = @import("../components.zig").Label;
@@ -25,7 +27,7 @@ pub const DrawSystem = struct {
         }
     }
 
-    pub fn draw(_: *const DrawSystem, s: *GameState, camera: Camera) void {
+    pub fn draw(self: *const DrawSystem, s: *GameState, camera: Camera) void {
         const orderedEntities = drawOrder(s);
 
         for (orderedEntities) |entity| {
@@ -37,6 +39,15 @@ pub const DrawSystem = struct {
             const texture = s.getComponent(*const rl.Texture2D, entity) catch continue;
 
             DrawSystem.drawTexture(texture.*, transform.p, transform.r, transform.s, camera);
+        }
+
+        self.drawRigidBodies(s, camera);
+    }
+
+    pub fn drawRigidBodies(_: DrawSystem, s: *GameState, camera: Camera) void {
+        for (0..s.entities.len) |entity| {
+            const rigidBody = s.getComponent(RigidBody, entity) catch continue;
+            DrawSystem.drawShape(rigidBody.*, camera);
         }
     }
 
@@ -105,6 +116,33 @@ pub const DrawSystem = struct {
         const origin = rl.Vector2.init(-dest.width / 2, -dest.height / 2);
 
         rl.drawTexturePro(texture.*, source, dest, origin, r, rl.Color.white);
+    }
+
+    pub fn drawShape(rb: RigidBody, camera: Camera) void {
+        switch (rb.s.shape) {
+            .circle => |circle| drawCircle(circle, rb, camera),
+            .rectangle => |rectangle| drawRectangle(rectangle, rb, camera),
+        }
+    }
+
+    pub fn drawCircle(circle: RigidBody.Shape.Circle, rb: RigidBody, camera: Camera) void {
+        const s = camera.s;
+
+        const screenP = camera.v(screenPosition(rb.d.p.x * s, rb.d.p.y * s));
+
+        rl.drawCircleLinesV(screenP, circle.radius * s, rl.Color.white);
+    }
+
+    pub fn drawRectangle(rect: RigidBody.Shape.Rectangle, rb: RigidBody, camera: Camera) void {
+        const s = camera.s;
+        const p = rb.d.p.sub(rect.size.scale(1 / 2));
+
+        const screenP = camera.v(screenPosition(p.x * camera.s, p.y * camera.s));
+        const screenS = rect.size.scale(s);
+
+        const dest = rl.Rectangle.init(screenP.x, screenP.y, screenS.x, screenS.y);
+
+        rl.drawRectangleLinesEx(dest, 1, rl.Color.white);
     }
 
     fn drawDebugBorder(camera: Camera) void {

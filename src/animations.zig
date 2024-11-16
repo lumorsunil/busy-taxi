@@ -7,8 +7,8 @@ const Textures = @import("textures.zig").Textures;
 const Animation = @import("animation.zig").Animation;
 const AnimationFrame = @import("animation.zig").AnimationFrame;
 
-pub fn pedestrianBlueWalkAnimation(allocator: Allocator, textures: *const Textures(rl.Texture2D)) !Animation {
-    const frames = try allocator.alloc(AnimationFrame, 8);
+pub fn pedestrianBlueWalkAnimation(allocator: Allocator, textures: *const Textures(rl.Texture2D)) Animation {
+    const frames = allocator.alloc(AnimationFrame, 8) catch unreachable;
 
     frames[0] = AnimationFrame{ .texture = &textures.pedestrianBlueIdle, .duration = 0.1 };
     frames[1] = AnimationFrame{ .texture = &textures.pedestrianBlueWalk1, .duration = 0.1 };
@@ -22,8 +22,8 @@ pub fn pedestrianBlueWalkAnimation(allocator: Allocator, textures: *const Textur
     return Animation.init(frames);
 }
 
-pub fn pedestrianRedWalkAnimation(allocator: Allocator, textures: *const Textures(rl.Texture2D)) !Animation {
-    const frames = try allocator.alloc(AnimationFrame, 8);
+pub fn pedestrianRedWalkAnimation(allocator: Allocator, textures: *const Textures(rl.Texture2D)) Animation {
+    const frames = allocator.alloc(AnimationFrame, 8) catch unreachable;
 
     frames[0] = AnimationFrame{ .texture = &textures.pedestrianRedIdle, .duration = 0.1 };
     frames[1] = AnimationFrame{ .texture = &textures.pedestrianRedWalk1, .duration = 0.1 };

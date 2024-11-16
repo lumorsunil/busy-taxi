@@ -1,9 +1,10 @@
 const std = @import("std");
-const rl = @import("raylib");
+const ecs = @import("ecs");
+const zlm = @import("zlm");
 
-const GameState = @import("../state-config.zig").GameState;
-const Transform = @import("../components.zig").Transform;
-const Physics = @import("../components.zig").Physics;
+const zge = @import("zge");
+const RigidBody = zge.physics.RigidBody;
+
 const Label = @import("../components.zig").Label;
 const AnimationComponent = @import("../components.zig").AnimationComponent;
 const CustomerComponent = @import("../components.zig").CustomerComponent;
@@ -15,96 +16,96 @@ const cfg = @import("../config.zig");
 const playerSpeedWhenPickingUp = 32;
 
 pub const CustomerSystem = struct {
-    pub fn update(s: *GameState, player: usize) void {
-        const playerTransform = s.getComponent(Transform, player) catch unreachable;
-        const playerPhysics = s.getComponent(Physics, player) catch unreachable;
+    pub fn update(reg: *ecs.Registry, player: ecs.Entity) void {
+        const playerBody = reg.getConst(RigidBody, player);
+        const view = reg.basicView(CustomerComponent);
 
-        for (0..s.entities.len) |entity| {
-            const customerComponent = s.getComponent(CustomerComponent, entity) catch continue;
+        for (view.data()) |entity| {
+            const customerComponent = reg.get(CustomerComponent, entity);
 
             switch (customerComponent.state) {
                 .transportingToDropOff => |dropOff| {
-                    handleTransportingToDropOff(s, entity, customerComponent, dropOff, playerPhysics, playerTransform);
+                    handleTransportingToDropOff(reg, entity, customerComponent, dropOff, playerBody);
                 },
                 .walkingToDropOff => |dropOff| {
-                    handleWalkingToDropOff(s, entity, dropOff);
+                    handleWalkingToDropOff(reg, entity, dropOff);
                 },
                 .waitingForTransport => {
-                    handleWaitingForTransport(s, entity, customerComponent, playerTransform, playerPhysics);
+                    handleWaitingForTransport(reg, entity, customerComponent, playerBody);
                 },
             }
         }
     }
 
-    fn handleWaitingForTransport(s: *GameState, customer: usize, customerComponent: *CustomerComponent, playerTransform: *Transform, playerPhysics: *Physics) void {
-        const customerTransform = s.getComponent(Transform, customer) catch return;
+    fn handleWaitingForTransport(reg: *ecs.Registry, customer: ecs.Entity, customerComponent: *CustomerComponent, playerBody: RigidBody) void {
+        const customerBody = reg.get(RigidBody, customer);
 
-        const customerC = rl.Vector2.init(customerTransform.p.x + 8, customerTransform.p.y + 16);
-        const playerC = rl.Vector2.init(playerTransform.p.x + 32, playerTransform.p.y + 32);
+        const customerC = customerBody.aabb.center();
+        const playerC = playerBody.aabb.center();
 
         const distanceToPlayer = playerC.distance(customerC);
-        const playerSpeed = playerPhysics.v.length();
+        const playerSpeed = playerBody.d.cloneVel().length();
 
         if (distanceToPlayer > 64 or playerSpeed > playerSpeedWhenPickingUp) return;
 
         if (distanceToPlayer < 16) {
-            customerEntersCar(s, customer, customerComponent, playerC);
+            customerEntersCar(reg, customer, customerComponent, playerC);
             return;
         }
 
-        var animation = s.getComponent(AnimationComponent, customer) catch unreachable;
+        var animation = reg.get(AnimationComponent, customer);
         animation.animationInstance.unPause();
 
-        var customerPhysics = s.getComponent(Physics, customer) catch return;
-
-        const dx = playerC.x - customerC.x;
-        const dy = playerC.y - customerC.y;
-        const r = std.math.atan2(dy, dx);
+        const d = playerC.sub(customerC);
+        const r = std.math.atan2(d.y, d.x);
         const walkSpeed = 10;
-        customerPhysics.v.x = std.math.cos(r) * walkSpeed;
-        customerPhysics.v.y = std.math.sin(r) * walkSpeed;
+        customerBody.d.setVel(zlm.vec2(
+            std.math.cos(r) * walkSpeed,
+            std.math.sin(r) * walkSpeed,
+        ));
     }
 
-    fn customerEntersCar(s: *GameState, customer: usize, customerComponent: *CustomerComponent, playerPosition: rl.Vector2) void {
-        s.setComponent(Invisible, customer, .{});
+    fn customerEntersCar(
+        reg: *ecs.Registry,
+        customer: ecs.Entity,
+        customerComponent: *CustomerComponent,
+        playerPosition: zlm.Vec2,
+    ) void {
+        reg.add(customer, Invisible{});
 
-        var locationCandidates: [cfg.MAX_ENTITIES]struct { location: *const LocationComponent } = undefined;
+        const view = reg.basicView(LocationComponent);
+
+        var locationCandidates: [100]struct { location: *const LocationComponent } = undefined;
         var lci: usize = 0;
-        for (0..s.entities.len) |candidate| {
-            const lcLocation = s.getComponent(LocationComponent, candidate) catch continue;
+        for (view.raw()) |*location| {
+            if (playerPosition.distance(location.entrancePosition) < 1024) continue;
 
-            if (playerPosition.distance(lcLocation.entrancePosition) < 1024) continue;
-
-            locationCandidates[lci] = .{ .location = lcLocation };
+            locationCandidates[lci] = .{ .location = location };
             lci += 1;
         }
 
         if (lci == 0) unreachable;
 
-        const randomCandidateIndex = s.rand.random().uintLessThan(usize, lci);
+        const randomCandidateIndex = reg.singletons().get(std.Random.DefaultPrng).random().uintLessThan(usize, lci);
         const destination = locationCandidates[randomCandidateIndex].location.entrancePosition;
 
-        std.log.info("CUSTOMERSTATE: transportingToDropOff: {}", .{destination});
         customerComponent.state = .{ .transportingToDropOff = .{ .destination = destination } };
     }
 
-    fn handleTransportingToDropOff(s: *GameState, customer: usize, customerComponent: *CustomerComponent, dropOff: CustomerComponent.DropOff, playerPhysics: *Physics, playerTransform: *Transform) void {
-        var transform = s.getComponent(Transform, customer) catch unreachable;
+    fn handleTransportingToDropOff(reg: *ecs.Registry, customer: ecs.Entity, customerComponent: *CustomerComponent, dropOff: CustomerComponent.DropOff, playerBody: RigidBody) void {
+        var customerBody = reg.get(RigidBody, customer);
 
-        const playerC = rl.Vector2.init(playerTransform.p.x + 32, playerTransform.p.y + 32);
+        const playerC = playerBody.aabb.center();
 
-        transform.p.x = playerC.x - 8;
-        transform.p.y = playerC.y - 16;
+        customerBody.d.setPos(playerC.sub(zlm.vec2(8, 16)));
 
-        const customerC = rl.Vector2.init(transform.p.x + 8, transform.p.y + 16);
+        const customerC = customerBody.aabb.center();
 
-        if (customerC.distance(dropOff.destination) < 32 and playerPhysics.v.length() < playerSpeedWhenPickingUp) {
+        if (customerC.distance(dropOff.destination) < 32 and playerBody.d.cloneVel().length() < playerSpeedWhenPickingUp) {
             // Drop off
-            s.removeComponent(Invisible, customer);
-            transform.p.x = playerC.x - 8;
-            transform.p.y = playerC.y - 16;
+            reg.remove(Invisible, customer);
 
-            var animation = s.getComponent(AnimationComponent, customer) catch unreachable;
+            var animation = reg.get(AnimationComponent, customer);
             animation.animationInstance.unPause();
 
             customerComponent.state = .{ .walkingToDropOff = dropOff };
@@ -112,30 +113,27 @@ pub const CustomerSystem = struct {
         }
     }
 
-    fn handleWalkingToDropOff(s: *GameState, customer: usize, dropOff: CustomerComponent.DropOff) void {
-        var physics = s.getComponent(Physics, customer) catch unreachable;
-        const transform = s.getComponent(Transform, customer) catch unreachable;
+    fn handleWalkingToDropOff(reg: *ecs.Registry, customer: ecs.Entity, dropOff: CustomerComponent.DropOff) void {
+        var customerBody = reg.get(RigidBody, customer);
 
-        const customerC = rl.Vector2.init(transform.p.x + 8, transform.p.y + 16);
-        const target = rl.Vector2.init(
-            dropOff.destination.x,
-            dropOff.destination.y - 32,
-        );
+        const customerC = customerBody.aabb.center();
+        const target = dropOff.destination.sub(zlm.vec2(0, 32));
 
         if (customerC.distance(target) < 2) {
-            handleWalkedToDropOff(s, customer);
+            handleWalkedToDropOff(reg, customer);
             return;
         }
 
-        const dx = target.x - customerC.x;
-        const dy = target.y - customerC.y;
-        const r = std.math.atan2(dy, dx);
+        const d = target.sub(customerC);
+        const r = std.math.atan2(d.y, d.x);
         const walkSpeed = 10;
-        physics.v.x = std.math.cos(r) * walkSpeed;
-        physics.v.y = std.math.sin(r) * walkSpeed;
+        customerBody.d.setVel(zlm.vec2(
+            std.math.cos(r) * walkSpeed,
+            std.math.sin(r) * walkSpeed,
+        ));
     }
 
-    fn handleWalkedToDropOff(s: *GameState, customer: usize) void {
-        s.destroyEntity(customer) catch unreachable;
+    fn handleWalkedToDropOff(reg: *ecs.Registry, customer: ecs.Entity) void {
+        reg.destroy(customer);
     }
 };
