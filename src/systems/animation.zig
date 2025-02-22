@@ -1,5 +1,7 @@
 const rl = @import("raylib");
 const ecs = @import("ecs");
+const zge = @import("zge");
+const V = zge.vector.V;
 
 const TextureComponent = @import("zge").components.TextureComponent;
 const AnimationComponent = @import("../components.zig").AnimationComponent;
@@ -11,7 +13,7 @@ pub const AnimationSystem = struct {
         for (view.data()) |entity| {
             const animation = reg.get(AnimationComponent, entity);
             animation.animationInstance.update(t);
-            reg.addOrReplace(entity, TextureComponent.init(animation.animationInstance.getCurrentTexture()));
+            reg.addOrReplace(entity, TextureComponent.init(animation.animationInstance.getCurrentTexture(), null, V.zero));
         }
     }
 };

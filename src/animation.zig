@@ -67,4 +67,11 @@ pub const AnimationInstance = struct {
     pub fn unPause(self: *AnimationInstance) void {
         self.isPaused = false;
     }
+
+    pub fn reset(self: *AnimationInstance) void {
+        self.isPaused = false;
+        self.speed = 1;
+        self.currentFrame = 0;
+        self.nextFrameAt = self.getNextFrameAt();
+    }
 };

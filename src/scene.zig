@@ -1,6 +1,7 @@
 const std = @import("std");
 const Textures = @import("textures.zig").Textures;
 const Sounds = @import("sounds.zig").Sounds;
+const Music = @import("music.zig").Music;
 const LoadError = @import("state.zig").LoadError;
 
 pub const Scene = struct {
@@ -27,8 +28,8 @@ pub const Scene = struct {
         };
     }
 
-    pub fn load(scene: Scene, texturePaths: Textures([*:0]const u8), soundPaths: Sounds([*:0]const u8)) LoadError!void {
-        return try scene.vtable.load(scene.ptr, texturePaths, soundPaths);
+    pub fn load(scene: Scene, texturePaths: Textures([*:0]const u8), soundPaths: Sounds([*:0]const u8), musicPaths: Music([*:0]const u8)) LoadError!void {
+        return try scene.vtable.load(scene.ptr, texturePaths, soundPaths, musicPaths);
     }
 
     pub fn update(scene: Scene, dt: f32, t: f64) void {
@@ -41,7 +42,7 @@ pub const Scene = struct {
 };
 
 const SceneVTable = struct {
-    load: *const fn (scene: *anyopaque, texturePaths: Textures([*:0]const u8), soundPaths: Sounds([*:0]const u8)) LoadError!void,
+    load: *const fn (scene: *anyopaque, texturePaths: Textures([*:0]const u8), soundPaths: Sounds([*:0]const u8), musicPaths: Music([*:0]const u8)) LoadError!void,
     update: *const fn (scene: *anyopaque, dt: f32, t: f64) void,
     draw: *const fn (scene: *anyopaque, dt: f32, t: f64) void,
 };

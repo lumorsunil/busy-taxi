@@ -6,6 +6,8 @@ const textures = @import("textures.zig");
 const texturePaths = textures.texturePaths;
 const sounds = @import("sounds.zig");
 const soundPaths = sounds.soundPaths;
+const music = @import("music.zig");
+const musicPaths = music.musicPaths;
 
 pub const Game = struct {
     scene: ?Scene = null,
@@ -18,7 +20,7 @@ pub const Game = struct {
 
     pub fn load(g: *Game) LoadError!void {
         if (g.scene) |scene| {
-            try scene.load(texturePaths, soundPaths);
+            try scene.load(texturePaths, soundPaths, musicPaths);
         }
     }
 

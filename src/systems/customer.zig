@@ -4,12 +4,14 @@ const zlm = @import("zlm");
 
 const zge = @import("zge");
 const RigidBody = zge.physics.RigidBody;
+const Invisible = zge.components.Invisible;
+const V = zge.vector.V;
+const Vector = zge.vector.Vector;
 
 const Label = @import("../components.zig").Label;
 const AnimationComponent = @import("../components.zig").AnimationComponent;
 const CustomerComponent = @import("../components.zig").CustomerComponent;
 const LocationComponent = @import("../components.zig").LocationComponent;
-const Invisible = @import("../components.zig").Invisible;
 
 const cfg = @import("../config.zig");
 
@@ -43,8 +45,8 @@ pub const CustomerSystem = struct {
         const customerC = customerBody.aabb.center();
         const playerC = playerBody.aabb.center();
 
-        const distanceToPlayer = playerC.distance(customerC);
-        const playerSpeed = playerBody.d.cloneVel().length();
+        const distanceToPlayer = V.distance(playerC, customerC);
+        const playerSpeed = V.length(playerBody.d.cloneVel());
 
         if (distanceToPlayer > 64 or playerSpeed > playerSpeedWhenPickingUp) return;
 
@@ -56,10 +58,10 @@ pub const CustomerSystem = struct {
         var animation = reg.get(AnimationComponent, customer);
         animation.animationInstance.unPause();
 
-        const d = playerC.sub(customerC);
-        const r = std.math.atan2(d.y, d.x);
+        const d = playerC - customerC;
+        const r = std.math.atan2(V.y(d), V.x(d));
         const walkSpeed = 10;
-        customerBody.d.setVel(zlm.vec2(
+        customerBody.d.setVel(V.init(
             std.math.cos(r) * walkSpeed,
             std.math.sin(r) * walkSpeed,
         ));
@@ -69,7 +71,7 @@ pub const CustomerSystem = struct {
         reg: *ecs.Registry,
         customer: ecs.Entity,
         customerComponent: *CustomerComponent,
-        playerPosition: zlm.Vec2,
+        playerPosition: Vector,
     ) void {
         reg.add(customer, Invisible{});
 
@@ -78,7 +80,7 @@ pub const CustomerSystem = struct {
         var locationCandidates: [100]struct { location: *const LocationComponent } = undefined;
         var lci: usize = 0;
         for (view.raw()) |*location| {
-            if (playerPosition.distance(location.entrancePosition) < 1024) continue;
+            if (V.distance(playerPosition, location.entrancePosition) < 1024) continue;
 
             locationCandidates[lci] = .{ .location = location };
             lci += 1;
@@ -97,11 +99,11 @@ pub const CustomerSystem = struct {
 
         const playerC = playerBody.aabb.center();
 
-        customerBody.d.setPos(playerC.sub(zlm.vec2(8, 16)));
+        customerBody.d.setPos(playerC - V.init(8, 16));
 
         const customerC = customerBody.aabb.center();
 
-        if (customerC.distance(dropOff.destination) < 32 and playerBody.d.cloneVel().length() < playerSpeedWhenPickingUp) {
+        if (V.distance(customerC, dropOff.destination) < 32 and V.length(playerBody.d.cloneVel()) < playerSpeedWhenPickingUp) {
             // Drop off
             reg.remove(Invisible, customer);
 
@@ -117,17 +119,17 @@ pub const CustomerSystem = struct {
         var customerBody = reg.get(RigidBody, customer);
 
         const customerC = customerBody.aabb.center();
-        const target = dropOff.destination.sub(zlm.vec2(0, 32));
+        const target = dropOff.destination - V.init(0, 32);
 
-        if (customerC.distance(target) < 2) {
+        if (V.distance(customerC, target) < 2) {
             handleWalkedToDropOff(reg, customer);
             return;
         }
 
-        const d = target.sub(customerC);
-        const r = std.math.atan2(d.y, d.x);
+        const d = target - customerC;
+        const r = std.math.atan2(V.y(d), V.x(d));
         const walkSpeed = 10;
-        customerBody.d.setVel(zlm.vec2(
+        customerBody.d.setVel(V.init(
             std.math.cos(r) * walkSpeed,
             std.math.sin(r) * walkSpeed,
         ));

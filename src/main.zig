@@ -9,6 +9,7 @@ const Scene = @import("scene.zig").Scene;
 
 const cfg = @import("config.zig");
 const zge = @import("zge");
+const V = zge.vector.V;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
@@ -18,13 +19,13 @@ pub fn main() !void {
     var game = Game.init();
     defer game.deinit();
 
-    var screen = zge.screen.Screen.init(cfg.initialSize.w, cfg.initialSize.h);
+    var screen = zge.screen.Screen.init(.{ cfg.initialSize.w, cfg.initialSize.h });
 
-    const sizeAsInt = screen.asInt(i32);
-    rl.initWindow(sizeAsInt.x, sizeAsInt.y, "Busy Taxi");
-    rl.setWindowState(.{ .vsync_hint = true });
+    const sizeX, const sizeY = V.toInt(i32, screen.size);
+    rl.initWindow(sizeX, sizeY, "Busy Taxi");
     defer rl.closeWindow();
-    rl.setWindowPosition(15, 100);
+    rl.setWindowState(.{ .vsync_hint = true });
+    rl.setWindowPosition(cfg.initialPosition.x, cfg.initialPosition.y);
     rl.initAudioDevice();
     defer rl.closeAudioDevice();
 
@@ -45,7 +46,7 @@ pub fn main() !void {
         const dt = rl.getFrameTime();
 
         if (rl.isWindowResized()) {
-            screen.setSizeFromInt(i32, zlm.SpecializeOn(i32).vec2(rl.getScreenWidth(), rl.getScreenHeight()));
+            screen.setSize(V.fromInt(i32, rl.getScreenWidth(), rl.getScreenHeight()));
         }
 
         game.update(dt, t);

@@ -4,7 +4,7 @@ const rl = @import("raylib");
 pub const LoadError = error{
     FailedLoading,
     AlreadyLoaded,
-};
+} || rl.RaylibError;
 
 pub const EntityError = error{
     IdUnavailable,
@@ -67,7 +67,7 @@ pub fn State(comptime config: StateConfig) type {
             inline for (std.meta.fields(@TypeOf(soundPaths))) |field| {
                 const sound = rl.loadSound(@field(soundPaths, field.name));
                 @field(s.sounds, field.name) = sound;
-                rl.setSoundVolume(sound, 0.05);
+                //rl.setSoundVolume(sound, 0.05);
             }
 
             s.isLoaded = true;
