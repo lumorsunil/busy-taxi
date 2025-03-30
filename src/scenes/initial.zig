@@ -1485,8 +1485,8 @@ pub const InitialScene = struct {
 
     fn roadSourceRectTr(gp: Vector) AABB {
         return AABB{
-            .tl = gp * V.scalar(32 + 4 + 1) * V.scalar(2),
-            .br = gp * V.scalar(32 + 4 + 1) * V.scalar(2) + V.scalar(32),
+            .tl = gp * V.scalar(32 + 4 + 1) + V.scalar(2),
+            .br = gp * V.scalar(32 + 4 + 1) + V.scalar(2 + 32),
             .isMinimal = true,
         };
     }
@@ -1533,6 +1533,8 @@ pub const InitialScene = struct {
 
             scene.drawSystem.drawTextureSR(&scene.textures.roadTileset, textureA, V.zero, pAs, 0, scale, false);
             scene.drawSystem.drawTextureSR(&scene.textures.roadTileset, textureB, V.zero, pBs, 0, scale, false);
+
+            std.log.debug("drawing road at: {d} {d}", .{ pAs, pBs });
 
             if (direction == RoadDirection.Left or direction == RoadDirection.Right) {
                 pA += V.init(d, 0);
