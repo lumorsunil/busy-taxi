@@ -28,11 +28,11 @@
     - [x] game completed screen
     - [x] tweak difficulty and number of levels
   - [ ] polish
-    - [ ] sound when picking customer
+    - [x] sound when picking customer
     - [ ] sound when completing level
     - [ ] sound when completing game
     - [ ] sound when crashing
-    - [ ] music track
+    - [x] music track
 
 ## fixes that I will do
 

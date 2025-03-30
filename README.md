@@ -4,11 +4,10 @@ This is a game I made for a [YouTube series](https://www.youtube.com/watch?v=HEo
 
 I'm leaving this here for educational purposes for those that want to see the code.
 
-It is currently in a state of disarray, it is playable but there are a couple of issues:
+I fixed most of the issues that made the game sort of unplayable, so it should be playable now at least but with a few bugs:
 
-- Something happened with the physics so the cars move really slow. Tweaking needs to be done to the forces.
-- The roads are not properly drawn.
-- Probably other issues that I haven't found yet.
+- The customer is drawn behind the buildings
+- Other stuff listed in the todo
 
 ## Instructions
 

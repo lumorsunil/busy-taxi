@@ -227,9 +227,9 @@ pub const CarAISystem = struct {
             const dx, const dy = relToWaypoint - v;
 
             if (@abs(dx) < @abs(dy)) {
-                applyForce(body, V.init(dx, 0));
+                applyForce2(body, V.init(dx, 0));
             } else {
-                applyForce(body, V.init(0, dy));
+                applyForce2(body, V.init(0, dy));
             }
         }
     }
@@ -239,7 +239,7 @@ pub const CarAISystem = struct {
     }
 
     fn accelerateToTarget(body: *RigidBody, ai: *CarAI) void {
-        const engineForce = V.init(1, 0) * V.rotate(V.scalar(ai.accelerationForceMagnitude), ai.direction.r);
+        const engineForce = V.rotate(V.right * V.scalar(ai.accelerationForceMagnitude), ai.direction.r);
 
         applyForce(body, engineForce);
     }
@@ -289,7 +289,7 @@ pub const CarAISystem = struct {
 
         const totalForce = internalFrictionForce + groundFrictionalForce + dragForce + fastDragForce;
 
-        body.applyForce(totalForce);
+        applyForce2(body, totalForce);
     }
 
     fn calculateFrictionalForce(body: *RigidBody, static: f32, kinetic: f32) Vector {
@@ -335,5 +335,9 @@ pub const CarAISystem = struct {
 
     fn applyForce(body: *RigidBody, force: Vector) void {
         body.applyForce(force * forceScale(body));
+    }
+
+    fn applyForce2(body: *RigidBody, force: Vector) void {
+        body.applyForce(force);
     }
 };
