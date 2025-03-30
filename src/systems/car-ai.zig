@@ -227,21 +227,21 @@ pub const CarAISystem = struct {
             const dx, const dy = relToWaypoint - v;
 
             if (@abs(dx) < @abs(dy)) {
-                body.applyForce(V.init(dx, 0));
+                applyForce(body, V.init(dx, 0));
             } else {
-                body.applyForce(V.init(0, dy));
+                applyForce(body, V.init(0, dy));
             }
         }
     }
 
     fn brake(body: *RigidBody, brakeForce: f32) void {
-        body.applyForce(V.normalize(-body.d.cloneVel()) * V.scalar(brakeForce));
+        applyForce(body, V.normalize(-body.d.cloneVel()) * V.scalar(brakeForce));
     }
 
     fn accelerateToTarget(body: *RigidBody, ai: *CarAI) void {
         const engineForce = V.init(1, 0) * V.rotate(V.scalar(ai.accelerationForceMagnitude), ai.direction.r);
 
-        body.applyForce(engineForce);
+        applyForce(body, engineForce);
     }
 
     fn applyCarTurningFriction(body: *RigidBody, direction: *Direction) void {
@@ -273,7 +273,7 @@ pub const CarAISystem = struct {
         const turnKeepVelocityFactor: f32 = if (steepness > 0) turnTransferVelocityFactorWhileSliding else turnTransferVelocityFactor;
         const b = V.init(@abs(V.y(f)) * std.math.sign(V.x(a)), @abs(V.x(f)) * std.math.sign(V.y(a))) * V.scalar(turnKeepVelocityFactor);
 
-        body.applyForce(f + b);
+        applyForce(body, (f + b));
     }
 
     pub fn updateCarFriction(body: *RigidBody, direction: *Direction) void {
@@ -327,5 +327,13 @@ pub const CarAISystem = struct {
         } else if (ai.direction.isDown()) {
             animation.animationInstance.animation = ai.animations.down;
         }
+    }
+
+    fn forceScale(body: *RigidBody) Vector {
+        return V.scalar(body.s.mass() * 10);
+    }
+
+    fn applyForce(body: *RigidBody, force: Vector) void {
+        body.applyForce(force * forceScale(body));
     }
 };

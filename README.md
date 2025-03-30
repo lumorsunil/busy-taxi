@@ -6,7 +6,7 @@ I'm leaving this here for educational purposes for those that want to see the co
 
 It is currently in a state of disarray, it is playable but there are a couple of issues:
 
-- Something happened with the physics so the cards move really slow. Tweaking needs to be done to the forces.
+- Something happened with the physics so the cars move really slow. Tweaking needs to be done to the forces.
 - The roads are not properly drawn.
 - Probably other issues that I haven't found yet.
 
