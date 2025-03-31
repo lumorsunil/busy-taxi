@@ -1,5 +1,7 @@
 # Busy Taxi
 
+![Busy Taxi](assets/screenshot.png "Busy Taxi")
+
 This is a game I made for a [YouTube series](https://www.youtube.com/watch?v=HEoxoIGsHY8&list=PL4EtwuhtXRFx8RKwWeKgEmvyQRQC602cq).
 
 I'm leaving this here for educational purposes for those that want to see the code.
