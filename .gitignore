@@ -1,3 +1,5 @@
+.envrc
+.direnv
 .zig-cache
 zig-out
 zig-pkg
