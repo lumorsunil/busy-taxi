@@ -3,7 +3,6 @@ const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 
 const rl = @import("raylib");
-const zlm = @import("zlm");
 
 const ecs = @import("ecs");
 
@@ -1534,7 +1533,7 @@ pub const InitialScene = struct {
             scene.drawSystem.drawTextureSR(&scene.textures.roadTileset, textureA, V.zero, pAs, 0, scale, false);
             scene.drawSystem.drawTextureSR(&scene.textures.roadTileset, textureB, V.zero, pBs, 0, scale, false);
 
-            std.log.debug("drawing road at: {d} {d}", .{ pAs, pBs });
+            // std.log.debug("drawing road at: {d} {d}", .{ pAs, pBs });
 
             if (direction == RoadDirection.Left or direction == RoadDirection.Right) {
                 pA += V.init(d, 0);

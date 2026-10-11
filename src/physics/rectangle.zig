@@ -1,13 +1,11 @@
-const zlm = @import("zlm");
-
 pub const Rect = struct {
-    tl: zlm.Vec2,
-    br: zlm.Vec2,
+    tl: @Vector(2, f32),
+    br: @Vector(2, f32),
 
     pub fn init(x: f32, y: f32, w: f32, h: f32) Rect {
         return Rect{
-            .tl = zlm.vec2(x, y),
-            .br = zlm.vec2(x + w, y + h),
+            .tl = .{ x, y },
+            .br = .{ x + w, y + h },
         };
     }
 

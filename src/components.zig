@@ -1,5 +1,4 @@
 const std = @import("std");
-const zlm = @import("zlm");
 const zge = @import("zge");
 const rl = @import("raylib");
 const ecs = @import("ecs");

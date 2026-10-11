@@ -1,6 +1,5 @@
 const std = @import("std");
 const ecs = @import("ecs");
-const zlm = @import("zlm");
 const zge = @import("zge");
 const V = zge.vector.V;
 const Vector = zge.vector.Vector;

@@ -2,7 +2,6 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const ecs = @import("ecs");
-const zlm = @import("zlm");
 const zge = @import("zge");
 const V = zge.vector.V;
 const Vector = zge.vector.Vector;

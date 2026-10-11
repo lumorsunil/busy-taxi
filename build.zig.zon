@@ -1,23 +1,18 @@
 .{
-    .name = "busy-taxi",
+    .name = .busy_taxi,
     .version = "0.0.0",
+    .fingerprint = 0x45025003b9b1f06a, // Changing this has security and trust implications.
+    .minimum_zig_version = "0.16.0",
     .dependencies = .{
-        .@"raylib-zig" = .{
-            .url = "git+https://github.com/Not-Nik/raylib-zig#4d452b2bcd0157199d07c70d79d4f84e6f8bd659",
-            .hash = "1220c531f8d0bfbc18944b6084916c520834a951520a8c033fc576fef8b240ee0fc2",
+        .raylib_zig = .{
+            .url = "git+https://github.com/raylib-zig/raylib-zig#8758f4cd3a5ae0df6941c4715257223d34c5ad3e",
+            .hash = "raylib_zig-6.0.0-KE8RECZ8BQDm-txuospkpZHbJ6DNpacUF7D88RWQ_qAe",
         },
         .entt = .{
-            .url = "git+https://github.com/prime31/zig-ecs#d3ae70ef6185b2e0269d62a57608bfce2567c102",
-            .hash = "1220949709178b133c4d7f6ddf87fa575a9f2e9afe545a39aafdc8c89e6abbe83412",
+            .url = "git+https://github.com/prime31/zig-ecs#d3a429a157a0502ff4b3b2fa9389251bffca269e",
+            .hash = "entt-1.0.0-qJPtbEjuAgBGugkES3DQsThMbIilGXJhTqgcpp121VDK",
         },
-        .zlm = .{
-            .url = "git+https://github.com/ziglibs/zlm#35b76fae19f9d0a1ed541db621d7c4b3e266087e",
-            .hash = "1220342ac333965de915f74a8425e4848ffe46852da0e4789103f9ec650c3cd22456",
-        },
-        .zge = .{
-            .url = "git+https://github.com/lumorsunil/zge#536eb1f8f8fa874f2bf89721c44045304f9b6b11",
-            .hash = "1220436530339c47c92720469213aafd840c6ac902d50969526ae668ab47c9e1945a",
-        },
+        .zge = .{ .path = "./zge" },
     },
     .paths = .{
         "build.zig",

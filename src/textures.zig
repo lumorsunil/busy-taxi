@@ -122,6 +122,15 @@ pub const texturePaths = Textures([*:0]const u8){
     .playerDown1 = assetsRoot ++ "player-down-1.png",
     .playerDown2 = assetsRoot ++ "player-down-2.png",
 
+    // .playerLeft1 = assetsRoot ++ "car-black-left-1.png",
+    // .playerLeft2 = assetsRoot ++ "car-black-left-2.png",
+    // .playerRight1 = assetsRoot ++ "car-black-right-1.png",
+    // .playerRight2 = assetsRoot ++ "car-black-right-2.png",
+    // .playerUp1 = assetsRoot ++ "car-black-up-1.png",
+    // .playerUp2 = assetsRoot ++ "car-black-up-2.png",
+    // .playerDown1 = assetsRoot ++ "car-black-down-1.png",
+    // .playerDown2 = assetsRoot ++ "car-black-down-2.png",
+
     .carBlueLeft1 = assetsRoot ++ "player-left-1.png",
     .carBlueLeft2 = assetsRoot ++ "player-left-2.png",
     .carBlueRight1 = assetsRoot ++ "player-right-1.png",

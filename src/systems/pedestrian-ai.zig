@@ -2,7 +2,6 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const rl = @import("raylib");
 const ecs = @import("ecs");
-const zlm = @import("zlm");
 const zge = @import("zge");
 
 const util = @import("../util.zig");

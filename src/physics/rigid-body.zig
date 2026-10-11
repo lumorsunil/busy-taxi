@@ -1,5 +1,4 @@
 const std = @import("std");
-const zlm = @import("zlm");
 
 /// 1cm x 1cm
 pub const MIN_AREA: f32 = 0.01 * 0.01;
@@ -80,7 +79,7 @@ pub const RigidBodyStaticParams = struct {
         };
 
         pub const Rectangle = struct {
-            size: zlm.Vec2,
+            size: @Vector(2, f32),
 
             pub fn width(self: Rectangle) f32 {
                 return self.size.x;
@@ -127,9 +126,9 @@ pub const RigidBodyStaticParams = struct {
 };
 
 pub const RigidBodyDynamicParams = struct {
-    p: zlm.Vec2 = zlm.vec2(0, 0),
-    v: zlm.Vec2 = zlm.vec2(0, 0),
-    a: zlm.Vec2 = zlm.vec2(0, 0),
+    p: @Vector(2, f32) = @splat(0),
+    v: @Vector(2, f32) = @splat(0),
+    a: @Vector(2, f32) = @splat(0),
     r: f32 = 0,
     rv: f32 = 0,
     ra: f32 = 0,

@@ -1,6 +1,5 @@
 const std = @import("std");
 const rl = @import("raylib");
-const zlm = @import("zlm");
 
 const Game = @import("busy-taxi.zig").Game;
 
